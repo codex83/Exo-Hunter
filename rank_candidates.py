@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 from src import config
 from src.data_loader import load_data
+from src.preprocessing import preprocess_data
 
 def rank_candidates(model_path: str, data_path: str):
     """Loads a trained model and uses it to rank candidate exoplanets."""
@@ -21,13 +22,17 @@ def rank_candidates(model_path: str, data_path: str):
     if raw_df is None:
         return
 
-    # Isolate the candidate data
-    candidates_df = raw_df[raw_df[config.TARGET_COLUMN] == 'CANDIDATE'].copy()
-    candidate_ids = candidates_df['kepoi_name']
+    # Use our existing preprocessing logic to prepare the data
+    # We only need the candidates_df, so we ignore the first returned value
+    _, candidates_df_processed = preprocess_data(raw_df, config.COLS_TO_DROP, config.TARGET_COLUMN)
     
-    # The pipeline handles all preprocessing, so we pass the dataframe as is
-    print(f"Predicting probabilities for {len(candidates_df)} candidates...")
-    candidate_probs = model_pipeline.predict_proba(candidates_df)[:, 1]
+    # We need the original kepoi_name for identification
+    # We get it from the raw_df at the same index as our processed candidates
+    candidate_ids = raw_df.loc[candidates_df_processed.index]['kepoi_name']
+    
+    # The pipeline handles scaling, but the feature engineering must be done before
+    print(f"Predicting probabilities for {len(candidates_df_processed)} candidates...")
+    candidate_probs = model_pipeline.predict_proba(candidates_df_processed.drop(config.TARGET_COLUMN, axis=1, errors='ignore'))[:, 1]
     
     # Create and save the results
     results_df = pd.DataFrame({
