@@ -4,6 +4,7 @@ import joblib
 from src import config
 from src.data_loader import load_data
 from src.preprocessing import preprocess_data
+import os
 
 def rank_candidates(model_path: str, data_path: str):
     """Loads a trained model and uses it to rank candidate exoplanets."""
@@ -40,7 +41,9 @@ def rank_candidates(model_path: str, data_path: str):
         'confirmation_probability': candidate_probs
     }).sort_values(by='confirmation_probability', ascending=False)
     
-    output_path = "ranked_candidates.csv"
+    output_dir = "output"
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "ranked_candidates.csv")
     results_df.to_csv(output_path, index=False)
     
     print(f"\nTop 15 most likely exoplanet candidates:")

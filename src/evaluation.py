@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+import os
 
 def evaluate_model(model_pipeline, X_test, y_test):
     """Evaluates the final model on the test set and prints reports."""
@@ -20,6 +21,12 @@ def evaluate_model(model_pipeline, X_test, y_test):
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['FALSE POSITIVE', 'CONFIRMED'])
     disp.plot(cmap=plt.cm.Blues)
     plt.title("Confusion Matrix")
+    
+    # Save the plot
+    os.makedirs("plots", exist_ok=True)
+    plt.savefig("plots/confusion_matrix.png")
+    print("Confusion matrix plot saved to plots/confusion_matrix.png")
+    
     plt.show()
 
 def plot_feature_importance(model_pipeline, feature_names):
@@ -48,4 +55,10 @@ def plot_feature_importance(model_pipeline, feature_names):
     plt.xlabel('Importance')
     plt.ylabel('Feature')
     plt.tight_layout()
+    
+    # Save the plot
+    os.makedirs("plots", exist_ok=True)
+    plt.savefig("plots/feature_importance.png")
+    print("Feature importance plot saved to plots/feature_importance.png")
+    
     plt.show()
