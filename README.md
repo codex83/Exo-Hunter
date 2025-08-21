@@ -1,72 +1,73 @@
-# Exo-Hunter: Exoplanet Classification Project
+# Exo-Hunter: A Machine Learning Pipeline for Exoplanet Discovery
 
-## 1. Project Objective
+A project to classify Kepler Objects of Interest (KOIs) as "Confirmed" exoplanets or "False Positives" using machine learning and light curve data.
 
-The goal of the Exo-Hunter project is to develop a high-accuracy classification model to distinguish between confirmed exoplanets and astrophysical false positives using photometric data from NASA's Kepler Space Telescope. The project leverages a robust machine learning pipeline to preprocess data, engineer insightful features, and train a highly performant model. The final, trained model is then used to score and rank unclassified "Candidate" objects, providing a prioritized list for further scientific investigation.
+The key finding is that the final **LightGBM model**, tuned with `RandomizedSearchCV`, **achieves over 99% accuracy**, demonstrating the power of feature engineering (specifically Signal-to-Noise Ratio) and gradient boosting on tabular astronomical data.
 
-## 2. Dataset
+---
 
-*   **Source**: Kepler Objects of Interest (KOI) Data from the NASA Exoplanet Archive.
-*   **Local Copy**: The dataset is included in this repository at `data/cumulative.csv`.
+## Table of Contents
+1. [Project Goal](#project-goal)
+2. [Dataset](#dataset)
+3. [Methodology](#methodology)
+4. [Results](#results)
+5. [Project Structure](#project-structure)
+6. [Getting Started](#getting-started)
+7. [Usage](#usage)
 
-## 3. Project Structure
+---
 
-The project is organized into a modular structure for clarity, maintainability, and reproducibility:
+## Project Goal
 
-```
-├── data/
-│   └── cumulative.csv
-├── output/                 # Generated files (model, ranked candidates)
-│   ├── ranked_candidates.csv
-│   └── exo_hunter_model.joblib
-├── plots/                  # Generated plots
-│   ├── confusion_matrix.png
-│   └── feature_importance.png
-├── src/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── data_loader.py
-│   ├── preprocessing.py
-│   ├── model_evaluation.py
-│   └── evaluation.py
-├── main.py                 # Main script for TRAINING
-├── rank_candidates.py      # Script for PREDICTION
-├── requirements.txt
-└── README.md
-```
+The objective was to build an end-to-end machine learning pipeline to automatically classify potential exoplanet candidates from the Kepler mission. This involved a systematic workflow including data preprocessing, feature engineering, model comparison, and hyperparameter tuning to produce a highly accurate and reliable classifier. The final model is then used to prioritize unclassified "Candidate" objects for further study.
 
-## 4. Methodology
+---
 
-1.  **Data Preprocessing**: The raw data is cleaned by dropping irrelevant columns. Missing values are robustly handled using median imputation.
-2.  **Feature Engineering**: A key step was the creation of **Signal-to-Noise Ratio (SNR)** features for all physical measurements with corresponding errors. This proved to be highly predictive.
-3.  **Model Selection**: Three baseline models were evaluated using 5-fold cross-validation:
-    *   `RandomForestClassifier`
-    *   `MLPClassifier` (Neural Network)
-    *   `LGBMClassifier`
-    
-    The `LGBMClassifier` was selected as the top-performing architecture due to its superior F1-score and accuracy.
-4.  **Hyperparameter Tuning**: `RandomizedSearchCV` was used to find the optimal hyperparameters for the `LGBMClassifier`.
-5.  **Separated Workflows**: The project is split into two distinct pipelines: a training pipeline (`main.py`) and a prediction pipeline (`rank_candidates.py`).
+## Dataset
 
-## 5. Final Model Performance
+*   **Source**: Kepler Objects of Interest (KOI) Data from the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/docs/data.html).
+*   **Local Copy**: The full dataset is included in this repository at `data/cumulative.csv`.
 
-The final, tuned model was evaluated on a held-out test set. The results demonstrate an exceptionally high level of performance with an **overall accuracy and F1-score of 99%**.
+---
 
-### Confusion Matrix
+## Methodology
 
-![Confusion Matrix](plots/confusion_matrix.png)
+### 1. Data Preprocessing (`src/preprocessing.py`)
+*   **Data Separation**: The raw data was split into a primary dataset (for training and evaluation) containing 'CONFIRMED' and 'FALSE POSITIVE' labels, and a 'CANDIDATE' dataset for final prediction.
+*   **Feature Selection**: Non-predictive or redundant columns (e.g., identifiers) were dropped based on the data dictionary.
+*   **Imputation**: Missing numerical values were imputed using the median strategy to prevent data leakage and handle gaps in the data robustly.
 
-The matrix shows extremely low error rates, with only 4 false positives and 8 false negatives out of 1,464 test samples.
+### 2. Feature Engineering (`src/preprocessing.py`)
+A crucial step was the creation of **Signal-to-Noise Ratio (SNR)** features for all physical measurements that had corresponding error values. For a given measurement `X` and its errors `X_err1`, `X_err2`, the SNR was calculated as `X / sqrt(X_err1^2 + X_err2^2)`. This proved to be a highly predictive feature transformation.
 
-### Feature Importance
+### 3. Model Evaluation (`src/model_evaluation.py`)
+Three baseline models were compared using 5-fold stratified cross-validation to select the best architecture for this task: `RandomForestClassifier`, `MLPClassifier` (Neural Network), and `LGBMClassifier`. LightGBM was chosen for its superior performance in both accuracy and F1-score.
 
-![Feature Importance](plots/feature_importance.png)
+### 4. Hyperparameter Tuning & Final Training (`src/model_evaluation.py`, `main.py`)
+The selected `LGBMClassifier` was tuned using `RandomizedSearchCV` over a wide parameter space to find the optimal hyperparameters. The best estimator was then re-trained on the entire training dataset to produce the final model, which was saved to `output/exo_hunter_model.joblib`.
 
-The engineered **SNR features** and the astronomers' **false positive flags** were the most influential predictors, validating our data-centric approach.
+---
 
-## 6. Prioritized Candidates
+## Results
 
-The final model was used to predict the confirmation probability for 2,248 unclassified "Candidate" objects. The top 10 most promising candidates are listed below:
+The final, tuned model was evaluated on a held-out test set (20% of the primary data).
+
+| Model              | Test Accuracy | Test F1-Score (Weighted) |
+| ------------------ | ------------- | ------------------------ |
+| **Tuned LightGBM** | **99.1%**     | **99.1%**                |
+
+**Conclusion**: The systematic approach of feature engineering, robust validation, and hyperparameter tuning produced an exceptionally accurate model. The high performance indicates that the engineered SNR features and the inherent patterns in the Kepler data are highly separable with modern gradient boosting techniques.
+
+### Performance Visualizations
+
+| Confusion Matrix                                     | Feature Importance                                       |
+| ---------------------------------------------------- | -------------------------------------------------------- |
+| ![Confusion Matrix](plots/confusion_matrix.png)      | ![Feature Importance](plots/feature_importance.png)      |
+
+The confusion matrix shows extremely low error rates, and the feature importance plot confirms that the engineered **SNR features** and existing **false positive flags** were the most influential predictors in the model.
+
+### Prioritized Candidate List
+The final model was used to predict the confirmation probability for 2,248 unclassified "Candidate" objects. The top 10 most promising candidates are listed below, providing a valuable resource for astronomers.
 
 | kepoi_name | confirmation_probability |
 |------------|--------------------------|
@@ -81,29 +82,64 @@ The final model was used to predict the confirmation probability for 2,248 uncla
 | K01239.02  | 1.0                      |
 | K03319.01  | 1.0                      |
 
-## 7. How to Use
+---
 
-### Setup
+## Project Structure
+```
+.
+├── data/
+│   └── cumulative.csv
+├── output/
+│   ├── ranked_candidates.csv
+│   └── exo_hunter_model.joblib
+├── plots/
+│   ├── confusion_matrix.png
+│   └── feature_importance.png
+├── src/
+│   ├── config.py
+│   ├── data_loader.py
+│   ├── evaluation.py
+│   ├── model_evaluation.py
+│   └── preprocessing.py
+├── .gitignore
+├── main.py
+├── rank_candidates.py
+├── requirements.txt
+└── README.md
+```
 
-1.  Clone this repository.
-2.  Install the required Python libraries:
+---
+
+## Getting Started
+
+### Prerequisites
+* Python 3.8+
+* An environment with the packages listed in `requirements.txt`.
+
+### Installation
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/codex83/Exo-Hunter.git
+    cd Exo-Hunter
+    ```
+2.  **Install dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
+---
 
-### Option A: Run the Full Training Pipeline
+## Usage
 
-This will run the entire workflow from scratch and save the model and plots.
+The project is split into two primary scripts for training and prediction.
 
-```bash
-python main.py
-```
+1.  **Run the Full Training Pipeline**:
+    This script preprocesses the data, trains the model via hyperparameter tuning, evaluates it, and saves the final model artifact and plots.
+    ```bash
+    python main.py
+    ```
 
-### Option B: Rank Candidates with the Pre-trained Model
-
-If a model has already been trained, you can use it to rank the candidates.
-
-```bash
-python rank_candidates.py
-```
-This will generate a `ranked_candidates.csv` file in the `output/` directory.
+2.  **Rank Candidates with the Trained Model**:
+    This script loads the saved model from `output/` and uses it to predict on the candidate objects, saving the ranked list to `output/ranked_candidates.csv`.
+    ```bash
+    python rank_candidates.py
+    ```
