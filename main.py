@@ -1,4 +1,6 @@
 # main.py
+import joblib
+import os
 from src import config
 from src.data_loader import load_data
 from src.preprocessing import preprocess_data
@@ -34,6 +36,13 @@ def main():
     # --- Phase 5: Final Evaluation ---
     evaluate_model(best_model_pipeline, X_test, y_test)
     plot_feature_importance(best_model_pipeline, X_train.columns)
+
+    # --- Phase 6: Save the final model ---
+    output_dir = 'output'
+    os.makedirs(output_dir, exist_ok=True)
+    model_path = os.path.join(output_dir, "exo_hunter_model.joblib")
+    joblib.dump(best_model_pipeline, model_path)
+    print(f"\nFinal model pipeline saved to {model_path}")
 
 if __name__ == '__main__':
     main()
